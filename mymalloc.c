@@ -34,6 +34,7 @@ static union {
 
 static int initialized = 0;
 
+void reset_heap(void);
 /* --------------------------
    Utility Functions
    -------------------------- */
@@ -109,6 +110,10 @@ static void initialize_heap(void) {
     atexit(check_leaks);
 }
 
+void reset_heap(void) {
+    size_t *first = (size_t *)heap.bytes;
+    set_header(first, MEMLENGTH, FREE);
+}
 /* --------------------------
    malloc Implementation
    -------------------------- */
@@ -194,15 +199,30 @@ void myfree(void *ptr, char *file, int line) {
         exit(2);
     }
 
-    size_t *header = get_header(ptr);
+/* Validate that ptr matches start of a payload */
+char *scan_ptr = heap.bytes;
+size_t *header = NULL;
+int found = 0;
 
-    if (!is_allocated(*header)) {
-        fprintf(stderr,
-            "free: Inappropriate pointer (%s:%d)\n",
-            file,
-            line);
-        exit(2);
+while (scan_ptr < heap.bytes + MEMLENGTH) {
+    size_t *curr = (size_t *)scan_ptr;
+
+    if (get_payload(curr) == ptr) {
+        header = curr;
+        found = 1;
+        break;
     }
+
+    scan_ptr += get_size(*curr);
+}
+
+if (!found || !is_allocated(*header)) {
+    fprintf(stderr,
+        "free: Inappropriate pointer (%s:%d)\n",
+        file,
+        line);
+    exit(2);
+}
 
     /* Mark free */
     set_header(header, get_size(*header), FREE);
@@ -218,6 +238,7 @@ void myfree(void *ptr, char *file, int line) {
 
         set_header(header, new_size, FREE);
     }
+
 
     /* Coalesce with previous */
     char *scan = heap.bytes;
