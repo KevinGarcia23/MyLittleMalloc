@@ -8,7 +8,7 @@ NetID: ka838
 
 Partner 2:
 Name: Kevin Garcia
-NetID: (Kevin's NetID)
+NetID: kag408
 
 ----------------------------------------
 Test Plan
